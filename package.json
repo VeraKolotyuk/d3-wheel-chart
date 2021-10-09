@@ -1,0 +1,21 @@
+{
+  "name": "d3-wheel-chart",
+  "version": "1.0.0",
+  "description": "Pie Chart where each section is split on given amount of levels",
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "rm -rf ./lib && tsc",
+    "prepare": "yarn build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Vera Kolotyuk",
+  "license": "ISC",
+  "dependencies": {
+    "d3": "^7.1.1",
+    "react": "^17.0.2"
+  },
+  "devDependencies": {
+    "@types/d3": "^7.0.0",
+    "@types/react": "^17.0.27"
+  }
+}
