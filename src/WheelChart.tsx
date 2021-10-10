@@ -26,7 +26,7 @@ interface IMargin {
     bottom: number;
 }
 
-interface IDimensions {
+export interface IDimensions {
     width: number;
     height: number;
     margin: IMargin;
