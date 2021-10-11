@@ -7,7 +7,10 @@ interface IWheel {
 interface ITheme {
     strokeColor: string;
     selectedColor: string;
-    defaultColor: string;
+    bgColor: string;
+    labelsColor?: string;
+    labelsSize?: number;
+    labelsShift?: number;
 }
 interface IMargin {
     left: number;

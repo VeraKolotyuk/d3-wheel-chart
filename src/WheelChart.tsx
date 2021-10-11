@@ -16,7 +16,10 @@ interface IWheel {
 interface ITheme {
     strokeColor: string;
     selectedColor: string;
-    defaultColor: string;
+    bgColor: string;
+    labelsColor?: string;
+    labelsSize?: number;
+    labelsShift?: number;
 }
 
 interface IMargin {
@@ -45,7 +48,10 @@ type Props = {
 const defaultTheme = {
     strokeColor: '#d0e0fc',
     selectedColor: '#3366d6',
-    defaultColor: '#f6faff'
+    bgColor: '#f6faff',
+    labelsColor: '#232323FF',
+    labelsSize: 17,
+    labelsShift: 70
 };
 
 enum DEFAULTS {
@@ -75,19 +81,61 @@ const WheelChart = ({ data,
     }
 
     function getArcBackground(level: number, arcIndex: number) {
-        return level > arcIndex  ? theme.selectedColor : theme.defaultColor;
+        return level > arcIndex  ? theme.selectedColor : theme.bgColor;
     }
 
-    useEffect(() => {
-        const pie = d3.pie<IWheel>().value(1);
+    function drawLabels(svg: d3.Selection<SVGGElement, unknown, null, undefined>, pie:  d3.Pie<any, IWheel>) {
+        const arcGenerator = d3.arc()
+            .innerRadius(width/2 + (theme.labelsShift ? theme.labelsShift : defaultTheme.labelsShift))
+            .outerRadius(width/2);
+        svg.selectAll('slices')
+            .data(pie(data))
+            .enter()
+            .append('text')
+            .text(function(d: PieArcDatum<IWheel>){ return d.data.name; })
+            .attr('transform', function(d:PieArcDatum<IWheel>) {
+                return 'translate(' + arcGenerator.centroid(d as any) + ')';
+            })
+            .style('text-anchor', 'middle')
+            .style('font-size',
+                theme.labelsSize ? theme.labelsSize : defaultTheme.labelsSize)
+            .style('fill',
+                theme.labelsColor ? theme.labelsColor : defaultTheme.labelsColor);
+    }
 
-        const svg = d3.select(svgRef.current).append('g')
-            .attr('transform', 'translate(' + svgWidth / 2 + ',' + svgHeight / 2 + ')');
-
+    function addEventHandlers(svg: d3.Selection<SVGPathElement, d3.PieArcDatum<IWheel>, SVGGElement, unknown>) {
         let tooltip: d3.Selection<HTMLDivElement, unknown, HTMLElement, any> | null = null;
         if (tooltipHtmlRenderer) {
             tooltip = useTooltip();
         }
+        svg.on('mouseover', (event, d: PieArcDatum <IWheel>) => {
+            if (tooltip && tooltipHtmlRenderer) {
+                const i = event.currentTarget.getAttribute('data-index');
+                tooltip.html(tooltipHtmlRenderer(d.data.level, +i+1, d.data.name))
+                    .style('left', (event.pageX + DEFAULTS.TOOLTIP_SHIFT) + 'px')
+                    .style('top', (event.pageY + DEFAULTS.TOOLTIP_SHIFT) + 'px');
+                tooltip.style('opacity', .9);
+            }
+        })
+            .on('mouseout', function() {
+                if (tooltip) {
+                    tooltip.style('opacity', 0);
+                    tooltip.style('left', '0px').style('top', '0px');
+                }
+            })
+            .on('click', (event, d: PieArcDatum <IWheel>) => {
+                if (onLevelClickHandler) {
+                    onLevelClickHandler(d.data.name, event.currentTarget.getAttribute('data-index'));
+                }
+            });
+    }
+
+    useEffect(() => {
+        if (!data) return;
+        const pie = d3.pie<IWheel>().value(1);
+
+        const svg = d3.select(svgRef.current).append('g')
+            .attr('transform', 'translate(' + svgWidth / 2 + ',' + svgHeight / 2 + ')');
 
         const arcsWrap = svg.selectAll('.arc')
             .data(pie(data))
@@ -100,39 +148,20 @@ const WheelChart = ({ data,
                     .innerRadius(l*levelHeight)
                     .outerRadius((1+l)*levelHeight);
 
-                arcsWrap.append('path')
+                const arcs = arcsWrap.append('path')
                     .attr('fill', function (d: PieArcDatum<IWheel>) {
                         return getArcBackground(d.data.level, l);
                     })
                     .attr('class', 'arc')
                     .attr('data-index', l)
                     .attr('stroke', theme.strokeColor)
-                    .attr('d', arc)
-                    .on('mouseover', (event, d: PieArcDatum <IWheel>) => {
-                        if (tooltip && tooltipHtmlRenderer) {
-                            const i = event.currentTarget.getAttribute('data-index');
-                            tooltip.html(tooltipHtmlRenderer(d.data.level, +i+1, d.data.name))
-                                .style('left', (event.pageX + DEFAULTS.TOOLTIP_SHIFT) + 'px')
-                                .style('top', (event.pageY + DEFAULTS.TOOLTIP_SHIFT) + 'px');
-                            tooltip.style('opacity', .9);
-                        }
-                    })
-                    .on('mouseout', function() {
-                        if (tooltip) {
-                            tooltip.style('opacity', 0);
-                            tooltip.style('left', '0px').style('top', '0px');
-                        }
-                    })
-                    .on('click', (event, d: PieArcDatum <IWheel>) => {
-                        if (onLevelClickHandler) {
-                            onLevelClickHandler(d.data.name, event.currentTarget.getAttribute('data-index'));
-                        }
-                    });
-
+                    .attr('d', arc);
+                addEventHandlers(arcs);
                 l++;
             }
         });
 
+        drawLabels(svg, pie);
     }, [data]);
 
     return <svg ref={svgRef} width={svgWidth} height={svgHeight} />;

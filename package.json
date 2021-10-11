@@ -1,6 +1,6 @@
 {
   "name": "d3-wheel-chart",
-  "version": "1.0.0",
+  "version": "1.0.5",
   "description": "Pie Chart where each section is split on given amount of levels",
   "main": "lib/index.js",
   "scripts": {
